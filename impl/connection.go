@@ -1,12 +1,17 @@
 package impl
 
-import "github.com/gorilla/websocket"
+import (
+	"github.com/gorilla/websocket"
+	"errors"
+	"sync"
+)
 
 type Connection struct{
-	wsConn * websocket.Conne
+	wsConn * websocket.Conn
 	inChan chan []byte
 	outChan chan []byte
-	closeChan chan[]bool
+	closeChan chan[]byte
+	mutex sync.Mutex
 	isClosed bool 
 }
 
@@ -15,12 +20,11 @@ func InitConection(wsConn *websocket.Conn)(conn *Connection, err error){
 		wsConn: wsConn,
 		inChan: make(chan []byte, 1000),
 		outChan: make(chan []byte, 1000),
-		closeChan: make(chan []byte 1),
-		
+		closeChan: make(chan []byte, 1),
 	}
 
-	go readLoop()
-	go writeLoop()
+	go conn.readLoop()
+	go conn.writeLoop()
 	return
 }
 
@@ -28,7 +32,7 @@ func (conn *Connection) ReadMessage()(data []byte, err error){
 	select{
 	case data= <- conn.inChan:
 	case <- conn.closeChan:
-		err = errors.New('connect is close!')
+		err = errors.New("connect is close!")
 	}
 	return 
 }
@@ -37,9 +41,9 @@ func (conn *Connection) WriteMessage(data []byte)(err error){
 	select{
 	case 	conn.outChan <- data:
 	case <- conn.closeChan:
-		err =  errors.New('connect is close!')
+		err =  errors.New("connect is close!")
 	}
-
+	return
 }
 
 func (conn *Connection) Close(){
@@ -49,7 +53,7 @@ func (conn *Connection) Close(){
 		close(conn.closeChan)
 		conn.isClosed = true
 	}
-	conn.mutex.unLock()
+	conn.mutex.Unlock()
 }
 
 func (conn *Connection) readLoop(){
@@ -76,10 +80,10 @@ func (conn *Connection) readLoop(){
 
 
 func (conn *Connection) writeLoop(){
-	var{
+	var(
 		data []byte
 		err error
-	}
+	)
 
 	for{
 		data = <- conn.outChan
@@ -88,7 +92,7 @@ func (conn *Connection) writeLoop(){
 			case <- conn.closeChan:	
 				goto ERR
 		}
-		if err =  conn.wsConn.WriteMessage(websocket.TextMessage, data); err != nill {
+		if err =  conn.wsConn.WriteMessage(websocket.TextMessage, data); err != nil {
 			goto ERR
 		}
 	}

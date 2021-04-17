@@ -3,6 +3,8 @@ package main
 import (
 	"net/http"
 	"github.com/gorilla/websocket"
+	"time"
+	impl "go_websocket/impl"
 )
 
 var (
@@ -15,10 +17,12 @@ var (
 
 func wsHandler(w http.ResponseWriter, r *http.Request){
 	var (
-		wsConn *websocket
+		wsConn *websocket.Conn
 		err error
+		data []byte
 		conn *impl.Connection
 	)
+
 	if wsConn, err = upgrader.Upgrade(w, r, nil); err != nil{
 		return 
 	}
@@ -27,14 +31,25 @@ func wsHandler(w http.ResponseWriter, r *http.Request){
 		goto ERR
 	}
 
-	
+	go func(){
+		var (
+			err error
+		)
+
+		for{
+			if  err = conn.WriteMessage([]byte("heart")); err != nil{
+				return 
+			}
+		}
+		time.Sleep(10*time.Second)
+	}()
 
 	for {
-		if data, err = conn.ReadMessage(); err != nill{
+		if data, err = conn.ReadMessage(); err != nil{
 			goto ERR
 		}
 
-		if err = conn.WriteMessage(); err != nil{
+		if err = conn.WriteMessage(data); err != nil{
 			goto ERR
 		}
 
