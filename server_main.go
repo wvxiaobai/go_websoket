@@ -1,5 +1,5 @@
 
-package go_websocket
+package main
 
 import (
     "fmt"
@@ -8,7 +8,6 @@ import (
     "net/url"
     "sync"
     "time"
-    "testing"
 )
 
 type websocketClientManager struct {
@@ -101,10 +100,10 @@ func (wsc *websocketClientManager) start() {
     }
 }
 
-func TestServer(t *testing.T) {
+func main() {
     wsc := NewWsClientManager("127.0.0.1", "7777", "/ws", 10)
     wsc.start()
     var w1 sync.WaitGroup
     w1.Add(1)
-    // w1.Wait()
+    w1.Wait()
 }
